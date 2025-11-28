@@ -36,8 +36,37 @@ else()
   message(STATUS "QT_BUILD_COMPILER: ${QT_BUILD_COMPILER}")
 endif()
 
-set(Qt6_CMAKE_ROOT "${ROOT_DIR}/build/${QT_BUILD_VERSION}/${QT_BUILD_COMPILER}/lib/cmake")
-set(Qt6_DIR ${Qt6_CMAKE_ROOT}/Qt6)
+# Try to find Qt in multiple possible locations
+# 1. Relative to current source directory (for local builds)
+# 2. Relative to CMAKE_SOURCE_DIR (for source distribution builds)
+# 3. From environment variable DIE_QT_ROOT (if set)
+
+set(QT_SEARCH_PATHS
+    "${ROOT_DIR}/build/${QT_BUILD_VERSION}/${QT_BUILD_COMPILER}/lib/cmake"
+    "${CMAKE_SOURCE_DIR}/build/${QT_BUILD_VERSION}/${QT_BUILD_COMPILER}/lib/cmake"
+)
+
+if(DEFINED ENV{DIE_QT_ROOT})
+    list(INSERT QT_SEARCH_PATHS 0 "$ENV{DIE_QT_ROOT}/${QT_BUILD_VERSION}/${QT_BUILD_COMPILER}/lib/cmake")
+endif()
+
+# Find Qt6Config.cmake
+set(Qt6_CMAKE_ROOT "")
+foreach(SEARCH_PATH ${QT_SEARCH_PATHS})
+    # Normalize path to use forward slashes
+    file(TO_CMAKE_PATH "${SEARCH_PATH}" NORMALIZED_PATH)
+    if(EXISTS "${NORMALIZED_PATH}/Qt6/Qt6Config.cmake")
+        set(Qt6_CMAKE_ROOT "${NORMALIZED_PATH}")
+        break()
+    endif()
+endforeach()
+
+if(NOT Qt6_CMAKE_ROOT)
+    message(FATAL_ERROR "Could not find Qt6. Searched in:\n  ${QT_SEARCH_PATHS}\n\nPlease ensure Qt ${QT_BUILD_VERSION} is installed in the build directory or set DIE_QT_ROOT environment variable.")
+endif()
+
+# Normalize paths to avoid mixed slashes
+file(TO_CMAKE_PATH "${Qt6_CMAKE_ROOT}/Qt6" Qt6_DIR)
 set(QT_DIR ${Qt6_DIR})
 
 message(STATUS "Qt6_CMAKE_ROOT: ${Qt6_CMAKE_ROOT}")
@@ -53,7 +82,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Qml Concurrent)
 FetchContent_Declare(
   DieLibrary
   GIT_REPOSITORY "https://github.com/horsicq/die_library"
-  GIT_TAG 09df9ccafe48a0531987ad1e605402ed79d4c3f6
+  GIT_TAG c8e482de7eac7d7f3621967cb3ac0d98f179b8cb
 )
 
 set(DIE_BUILD_AS_STATIC ON CACHE INTERNAL "")

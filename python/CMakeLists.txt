@@ -93,6 +93,7 @@ if(LINUX OR APPLE)
             PATTERN "pkgconfig" EXCLUDE
     )
 else()
+    # Windows: Install Qt DLLs and ICU libraries
     install(
         DIRECTORY
             ${Qt6_DIR}/../../../bin/
@@ -103,5 +104,8 @@ else()
             PATTERN "Qt6Qml.*"
             PATTERN "Qt6Concurrent.*"
             PATTERN "Qt6Network.*"
+            PATTERN "icudt*.dll"
+            PATTERN "icuin*.dll"
+            PATTERN "icuuc*.dll"
     )
 endif()
